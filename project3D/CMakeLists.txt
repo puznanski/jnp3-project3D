@@ -34,15 +34,15 @@ foreach(FILE ${SHADER_FILES})
 endforeach(FILE)
 
 
-
 # Dodaj źródło do pliku wykonywalnego tego projektu.
 add_executable (project3D
         "main.cpp"
         "app.cpp" "app.h"
-        "d3dx12.h"
+        "object_loader.cpp" "object_loader.h"
+        "d3dx12.h" "common.h"
         # TODO: DELETE LATER
         "pixel_shader.h" "vertex_shader.h"
-        ${SHADER_HEADERS}
+        # ${SHADER_HEADERS}
 )
 
 add_dependencies(project3D shaders)
@@ -68,3 +68,21 @@ endif ()
 
 # Dołączenie biblioteki DXGI
 target_link_libraries(project3D ${DXGI})
+
+# Szukanie biblioteki DXGUID (dxguid.lib)
+find_library(DXGUID dxguid)
+if (NOT DXGUID)
+    message(FATAL_ERROR "Could not find DXGUID.")
+endif ()
+
+# Dołączenie biblioteki DXGUID
+target_link_libraries(project3D ${DXGUID})
+
+# Szukanie biblioteki WindowsCodecs (windowscodecs.lib)
+find_library(WINDOWS_CODECS windowscodecs)
+if (NOT WINDOWS_CODECS)
+    message(FATAL_ERROR "Could not find WindowsCodecs.")
+endif ()
+
+# Dołączenie biblioteki WindowsCodecs
+target_link_libraries(project3D ${WINDOWS_CODECS})
