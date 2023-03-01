@@ -32,9 +32,9 @@ public:
 
     ~App();
 
-    HRESULT Initialize(HINSTANCE instance, INT cmd_show);
-
     void RunMessageLoop();
+
+    HRESULT Initialize(HINSTANCE instance, INT cmd_show);
 
 private:
     static const UINT FRAME_COUNT = 2;
@@ -96,10 +96,12 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> fence;
     UINT64 fence_value{};
 
-    HRESULT LoadPipeline();
-    HRESULT LoadAssets();
-    HRESULT PopulateCommandList();
-    HRESULT WaitForPreviousFrame();
+    static LRESULT CALLBACK WindowProc(
+            HWND hwnd,
+            UINT msg,
+            WPARAM wParam,
+            LPARAM lParam
+    );
 
     void GetHardwareAdapter(
             _In_ IDXGIFactory1* factory,
@@ -107,22 +109,19 @@ private:
             bool request_high_performance_adapter = false
     );
 
-    HRESULT LoadBitmapFromFile(PCWSTR uri, UINT &width, UINT &height, BYTE **bits);
+    HRESULT LoadPipeline();
+    HRESULT LoadAssets();
+    HRESULT PopulateCommandList();
+    HRESULT WaitForPreviousFrame();
     HRESULT OnInit();
     HRESULT OnUpdate();
     HRESULT OnRender();
     HRESULT OnDestroy();
+    HRESULT LoadBitmapFromFile(PCWSTR uri, UINT &width, UINT &height, BYTE **bits);
 
     void OnKeyDown(UINT8 key);
     void OnKeyUp(UINT8 key);
     void ProcessMove();
-
-    static LRESULT CALLBACK WindowProc(
-            HWND hwnd,
-            UINT msg,
-            WPARAM wParam,
-            LPARAM lParam
-    );
 
     std::queue<std::pair<LONG, LONG>> mouse_position_queue;
     bool mouse_pressed = false;

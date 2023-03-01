@@ -15,6 +15,119 @@
 #include "vertex_shader.h"
 #include "object_loader.h"
 
+
+App::App(std::wstring name) :
+        hwnd(nullptr),
+        width(0.0f),
+        height(0.0f),
+        aspect_ratio(0.0f),
+        title(std::move(name)),
+        use_warp_device(false),
+        frame_index(0),
+        rtv_descriptor_size(0),
+        viewport(0.0f, 0.0f, 0.0f, 0.0f),
+        scissor_rect(0, 0, 0, 0),
+        constant_buffer_data_begin(nullptr) {
+    RECT desktop;
+    GetClientRect(GetDesktopWindow(), &desktop);
+
+    width = desktop.bottom - desktop.top;
+    height = desktop.right - desktop.left;
+    aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
+    viewport.Width = static_cast<FLOAT>(width);
+    viewport.Height = static_cast<FLOAT>(height);
+    scissor_rect.right = static_cast<LONG>(width);
+    scissor_rect.bottom = static_cast<LONG>(height);
+
+    DirectX::XMStoreFloat4x4(&constant_buffer_data.mat_world_view_proj, DirectX::XMMatrixIdentity());
+}
+
+App::~App() {
+    OnDestroy();
+}
+
+void App::RunMessageLoop() {
+    MSG msg;
+
+    do {
+        mouse_pressed = (GetAsyncKeyState(VK_LBUTTON) < 0);
+
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            if (msg.message != WM_QUIT) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        } else {
+            OnUpdate();
+            OnRender();
+        }
+    } while (msg.message != WM_QUIT);
+}
+
+HRESULT App::Initialize(HINSTANCE instance, INT cmd_show) {
+    HRESULT hr = S_OK;
+
+    // Register the window class.
+    WNDCLASSEX wcex = {sizeof(WNDCLASSEX)};
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = App::WindowProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = sizeof(LONG_PTR);
+    wcex.hInstance = instance;
+    wcex.hbrBackground = nullptr;
+    wcex.lpszMenuName = nullptr;
+    wcex.hCursor = LoadCursor(nullptr, IDI_APPLICATION);
+    wcex.lpszClassName = L"D3DApp";
+
+    ATOM register_result = RegisterClassEx(&wcex);
+    if (register_result == 0) {
+        return 1;
+    }
+
+    hwnd = CreateWindowEx(
+            0,                              // Optional window styles.
+            L"D3DApp",                      // Window class
+            title.c_str(),                  // Window text
+            WS_POPUP,            // Window style
+
+            // Size and position
+            0, 0, width, height,
+
+            nullptr,       // Parent window
+            nullptr,       // Menu
+            instance,  // Instance handle
+            this        // Additional application data
+    );
+
+    hr = OnInit();
+
+    if (SUCCEEDED(hr)) {
+        if (hwnd) {
+            SetWindowPos(
+                    hwnd,
+                    NULL,
+                    NULL,
+                    NULL,
+                    static_cast<FLOAT>(height),
+                    static_cast<FLOAT>(width),
+                    SWP_NOMOVE);
+            ShowWindow(hwnd, SW_SHOWNORMAL);
+            UpdateWindow(hwnd);
+        } else {
+            return 1;
+        }
+    }
+
+    if (SUCCEEDED(hr)) {
+        RECT client_rect;
+        GetClientRect(hwnd, &client_rect);
+        MapWindowPoints(hwnd, nullptr, reinterpret_cast<POINT*>(&client_rect), 2);
+        ClipCursor(&client_rect);
+    }
+
+    return hr;
+}
+
 LRESULT CALLBACK App::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     LRESULT result = 0;
 
@@ -135,118 +248,6 @@ LRESULT CALLBACK App::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     return result;
 }
 
-App::App(std::wstring name) :
-        hwnd(nullptr),
-        width(0.0f),
-        height(0.0f),
-        aspect_ratio(0.0f),
-        title(std::move(name)),
-        use_warp_device(false),
-        frame_index(0),
-        rtv_descriptor_size(0),
-        viewport(0.0f, 0.0f, 0.0f, 0.0f),
-        scissor_rect(0, 0, 0, 0),
-        constant_buffer_data_begin(nullptr) {
-    RECT desktop;
-    GetClientRect(GetDesktopWindow(), &desktop);
-
-    width = desktop.bottom - desktop.top;
-    height = desktop.right - desktop.left;
-    aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
-    viewport.Width = static_cast<FLOAT>(width);
-    viewport.Height = static_cast<FLOAT>(height);
-    scissor_rect.right = static_cast<LONG>(width);
-    scissor_rect.bottom = static_cast<LONG>(height);
-
-    DirectX::XMStoreFloat4x4(&constant_buffer_data.mat_world_view_proj, DirectX::XMMatrixIdentity());
-}
-
-App::~App() {
-    OnDestroy();
-}
-
-void App::RunMessageLoop() {
-    MSG msg;
-
-    do {
-        mouse_pressed = (GetAsyncKeyState(VK_LBUTTON) < 0);
-
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            if (msg.message != WM_QUIT) {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-        } else {
-            OnUpdate();
-            OnRender();
-        }
-    } while (msg.message != WM_QUIT);
-}
-
-HRESULT App::Initialize(HINSTANCE instance, INT cmd_show) {
-    HRESULT hr = S_OK;
-
-    // Register the window class.
-    WNDCLASSEX wcex = {sizeof(WNDCLASSEX)};
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = App::WindowProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = sizeof(LONG_PTR);
-    wcex.hInstance = instance;
-    wcex.hbrBackground = nullptr;
-    wcex.lpszMenuName = nullptr;
-    wcex.hCursor = LoadCursor(nullptr, IDI_APPLICATION);
-    wcex.lpszClassName = L"D3DApp";
-
-    ATOM register_result = RegisterClassEx(&wcex);
-    if (register_result == 0) {
-        return 1;
-    }
-
-    hwnd = CreateWindowEx(
-            0,                              // Optional window styles.
-            L"D3DApp",                      // Window class
-            title.c_str(),                  // Window text
-            WS_POPUP,            // Window style
-
-            // Size and position
-            0, 0, width, height,
-
-            nullptr,       // Parent window
-            nullptr,       // Menu
-            instance,  // Instance handle
-            this        // Additional application data
-    );
-
-    hr = OnInit();
-
-    if (SUCCEEDED(hr)) {
-        if (hwnd) {
-            SetWindowPos(
-                    hwnd,
-                    NULL,
-                    NULL,
-                    NULL,
-                    static_cast<FLOAT>(height),
-                    static_cast<FLOAT>(width),
-                    SWP_NOMOVE);
-            ShowWindow(hwnd, SW_SHOWNORMAL);
-            UpdateWindow(hwnd);
-        } else {
-            return 1;
-        }
-    }
-
-    if (SUCCEEDED(hr)) {
-        RECT client_rect;
-        GetClientRect(hwnd, &client_rect);
-        MapWindowPoints(hwnd, nullptr, reinterpret_cast<POINT*>(&client_rect), 2);
-        ClipCursor(&client_rect);
-    }
-
-    return hr;
-}
-
 void App::GetHardwareAdapter(
         IDXGIFactory1* factory,
         IDXGIAdapter1** adapter,
@@ -293,22 +294,6 @@ void App::GetHardwareAdapter(
     }
 
     *adapter = adapter_ptr.Detach();
-}
-
-HRESULT App::OnRender() {
-    HRESULT hr = S_OK;
-
-    hr = PopulateCommandList();
-
-    if (SUCCEEDED(hr)) {
-        ID3D12CommandList* command_lists[] = { command_list.Get() };
-        command_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
-
-        hr = swap_chain->Present(1, 0);
-        WaitForPreviousFrame();
-    }
-
-    return hr;
 }
 
 HRESULT App::LoadPipeline() {
@@ -937,6 +922,22 @@ HRESULT App::OnUpdate() {
     memcpy(constant_buffer_data_begin, &constant_buffer_data, sizeof(constant_buffer_data));
 
     return S_OK;
+}
+
+HRESULT App::OnRender() {
+    HRESULT hr = S_OK;
+
+    hr = PopulateCommandList();
+
+    if (SUCCEEDED(hr)) {
+        ID3D12CommandList* command_lists[] = { command_list.Get() };
+        command_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
+
+        hr = swap_chain->Present(1, 0);
+        WaitForPreviousFrame();
+    }
+
+    return hr;
 }
 
 HRESULT App::OnDestroy() {
