@@ -39,7 +39,7 @@ public:
 private:
     static const UINT FRAME_COUNT = 2;
     static const UINT BITMAP_PIXEL_SIZE = 4;
-    std::string MODEL_URI = "assets\\untitled";
+    std::string MODEL_URI = "assets\\model1";
 
     struct ConstantBuffer {
         DirectX::XMFLOAT4X4 mat_world_view_proj;

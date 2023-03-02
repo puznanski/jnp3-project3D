@@ -13,7 +13,7 @@ public:
 private:
     static constexpr float DEF_PITCH = 0.0f;
     static constexpr float DEF_YAW = 0.0f;
-    static constexpr DirectX::XMFLOAT3 DEF_POSITION = {0.0f, 0.0f, 0.0f};
+    static constexpr DirectX::XMFLOAT3 DEF_POSITION = {-2.0f, 1.8f, -15.0f};
     static constexpr float ROTATION_SPEED = 0.01f;
     static constexpr float MOVE_SPEED = 0.1f;
 

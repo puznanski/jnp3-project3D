@@ -41,9 +41,7 @@ add_executable (project3D
         "object_loader.cpp" "object_loader.h"
         "camera.cpp" "camera.h"
         "d3dx12.h" "common.h"
-        # TODO: DELETE LATER
-        "pixel_shader.h" "vertex_shader.h"
-        # ${SHADER_HEADERS}
+        ${SHADER_HEADERS}
 )
 
 add_dependencies(project3D shaders)
